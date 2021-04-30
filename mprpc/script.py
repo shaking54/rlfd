@@ -5,14 +5,9 @@ from gevent import monkey
 from datetime import datetime
 import numpy as np
 import threading
-import subprocess
-import shlex
-from subprocess import Popen
 from multiprocessing import Process
 import time
 import json
-from gevent.server import StreamServer
-from mprpc.server import RPCServer
 
 
 def SerializeJson(list_logs):
@@ -29,7 +24,7 @@ class Core:
 
     @staticmethod
     def stream(ip, buffer):
-        # print(threading.currentThread().getName(), 'Starting')
+        print(threading.currentThread().getName(), 'Starting')
         capture = cv2.VideoCapture(0)
         # capture.set(cv2.CAP_PROP_BUFFERSIZE,2)
         while capture.isOpened():
@@ -42,7 +37,7 @@ class Core:
                 cv2.rectangle(frame, (left * 4, top * 4), (right * 4, bottom * 4), (0, 0, 255), 2)
             except:
                 print("No face")
-            cv2.imshow(str(threading.currentThread().native_id), frame)
+            cv2.imshow('Video', frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
             time.sleep(1 / 24)
@@ -51,7 +46,7 @@ class Core:
 
     @staticmethod
     def processing(db_path, ip, buffer):
-        # print(threading.currentThread().getName(), 'Starting')
+        print(threading.currentThread().getName(), 'Starting')
         path_folder = os.listdir(str(db_path))
         image = []
         path = str(db_path)
@@ -138,54 +133,19 @@ class Core:
         return 0
 
 
+def start():
+    with open("E:/PycharmProjects/Facereg/settings.json") as f:
+        settings = json.loads(f.read())
+    buffer = []
+    stream = threading.Thread(target=Core.stream, args=(settings['source'], buffer))
+    process = threading.Thread(target=Core.processing, args=(settings['db_path'], settings['source'], buffer))
+    stream.start()
+    process.start()
+    # if not stream.is_alive():
+    #    threading.Event.set()
+    return [stream.name, stream.native_id, process.name, process.native_id]
+
+
 monkey.patch_all()
 
-
-class DeepFaceServer(RPCServer):
-
-    @staticmethod
-    def stream_(buffer):
-        print("stream")
-        with open("E:/PycharmProjects/Facereg/settings.json") as f:
-            settings = json.loads(f.read())
-        Core.stream(settings['source'], buffer)
-
-    @staticmethod
-    def process(buffer):
-        print("process")
-        with open("E:/PycharmProjects/Facereg/settings.json") as f:
-            settings = json.loads(f.read())
-        Core.processing(settings['db_path'], settings['source'], buffer)
-
-    @staticmethod
-    def stream_process():
-        print("stream and process")
-        with open("E:/PycharmProjects/Facereg/settings.json") as f:
-            settings = json.loads(f.read())
-        buffer = []
-        thread1 = threading.Thread(target=Core.stream, args=(settings['source'], buffer))
-        thread2 = threading.Thread(target=Core.processing, args=(settings['db_path'], settings['source'], buffer))
-        thread1.start()
-        thread2.start()
-        # thread1.join()
-        # thread2.join()
-
-    @staticmethod
-    def stream_process2():
-        print("open process")
-        args = shlex.join(["python", "script.py"])
-        p = subprocess.Popen(args=args, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        # stdout, stderr = p.communicate
-        print(p.pid)
-        return p.pid
-        # file = open(r'./script.py', 'r').read()
-        # return exec(file)
-
-    @staticmethod
-    def kill_process(pid):
-        return os.kill(pid)
-
-
-print("--running--")
-server = StreamServer(('127.0.0.1', 6000), DeepFaceServer())
-server.serve_forever()
+start()

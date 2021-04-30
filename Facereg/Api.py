@@ -3,7 +3,7 @@ from multiprocessing import Process
 from flask import request, flash, url_for
 from flask import Response
 import gsocketpool.pool
-#from deepface import DeepFace
+from deepface import DeepFace
 from mprpc import RPCPoolClient
 from flask import Flask
 import os
@@ -53,36 +53,18 @@ def start_stream():
         with client_pool.connection() as client:
             Response(client.call('stream_process'))
 
-
-    def reg(*args):
-
-        # your_params = kwargs.get('post_data', {})
-        #       print(your_params)
-        try:
-            with client_pool.connection() as client:
-                Response(client.call('stream_', buffer))
-        except:
-            return {"message": "can't connect"}, 404
-
-    def reg2(*args):
-
-        # your_params = kwargs.get('post_data', {})
-        #       print(your_params)
-        try:
-            with client_pool.connection() as client:
-                Response(client.call('process', buffer))
-        except:
-            return {"message": "can't connect"}, 404
-
-    P1 = threading.Thread(target=Start(), args=(buffer,))
-    P1.start()
+    # try:
+    with client_pool.connection() as client:
+        Response(client.call('stream_process2'))
+    # except:
+        # return {"message": "can't connect"}, 404
 
     return {"message": "Accepted"}, 202
 
 
 @app.route('/restart', methods=['POST'])
 def restart():
-    #pass
+    # pass
     return DeepFace.stream("./database", source="rtsp://192.168.1.3:5554/playlist.m3u", enable_face_analysis=False)
 
 
